@@ -38,8 +38,8 @@
 ### 整体架构
 ```mermaid
 graph TD
-    A[前端 (index.html)] --> B[Flask后端]
-    B --> C[路由层 (routes.py)]
+    A[前端 index.html] --> B[Flask后端]
+    B --> C[路由层 routes.py]
     C --> D[业务逻辑层]
     D --> E[菜单识别]
     D --> F[健康分析]

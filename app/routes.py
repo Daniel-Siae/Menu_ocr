@@ -1,6 +1,6 @@
+import os
 from flask import Blueprint, request, jsonify, send_from_directory
 import base64
-import os
 import json
 import re
 from app.services.glm41v_service import GLM41VService
@@ -11,24 +11,54 @@ from app.business.health_analysis import HealthAnalysis
 from app.business.recommendation_engine import RecommendationEngine
 from app.business.nutrition_summary import NutritionSummary
 
-main = Blueprint('main', __name__, static_folder='static')
+main = Blueprint('main', __name__)
 
 # 初始化服务
-glm41v_service = GLM41VService()
-glm45_air_service = GLM45AirService()
-menu_recognition = MenuRecognition(glm41v_service)
-cost_calculator = CostCalculator()
-health_analysis = HealthAnalysis(glm45_air_service)
-recommendation_engine = RecommendationEngine(glm45_air_service)
-nutrition_summary = NutritionSummary(glm45_air_service)
+# 使用延迟初始化避免在Vercel构建时出现问题
+glm41v_service = None
+glm45_air_service = None
+menu_recognition = None
+cost_calculator = None
+health_analysis = None
+recommendation_engine = None
+nutrition_summary = None
+
+def init_services():
+    """延迟初始化服务，避免在Vercel构建时出错"""
+    global glm41v_service, glm45_air_service, menu_recognition
+    global cost_calculator, health_analysis, recommendation_engine, nutrition_summary
+    
+    if glm41v_service is None:
+        try:
+            glm41v_service = GLM41VService()
+            glm45_air_service = GLM45AirService()
+            menu_recognition = MenuRecognition(glm41v_service)
+            cost_calculator = CostCalculator()
+            health_analysis = HealthAnalysis(glm45_air_service)
+            recommendation_engine = RecommendationEngine(glm45_air_service)
+            nutrition_summary = NutritionSummary(glm45_air_service)
+        except Exception as e:
+            print(f"Warning: Could not initialize services: {e}")
 
 @main.route('/')
 def index():
+    # 在Vercel环境中直接返回简单的响应
+    if os.getenv('VERCEL') == '1':
+        return jsonify({"message": "Health Menu API is running", "status": "ok"})
+    
+    # 本地开发环境中返回静态文件
     return send_from_directory(os.path.join(main.root_path, '..'), 'index.html')
+
+@main.route('/health')
+def health_check():
+    return jsonify({"status": "ok", "environment": "vercel" if os.getenv('VERCEL') == '1' else "local"})
 
 @main.route('/api/process-menu', methods=['POST'])
 def process_menu():
     try:
+        # 初始化服务
+        init_services()
+        
         # 获取上传的图片
         if 'image' not in request.files:
             return jsonify({'error': '没有找到图片文件'}), 400
@@ -72,7 +102,10 @@ def process_menu():
         })
     except Exception as e:
         print("处理菜单时出错：", str(e))
+        import traceback
+        traceback.print_exc()
         return jsonify({'error': str(e)}), 500
+
 def parse_menu_text(menu_text):
     """
     解析菜单文本为菜品列表
@@ -239,6 +272,3 @@ def parse_menu_text(menu_text):
     # 如果没有找到有效的JSON或解析失败，返回空列表
     print("返回空的菜品列表")
     return []
-    
-
-    

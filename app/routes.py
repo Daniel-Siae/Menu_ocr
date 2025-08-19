@@ -11,7 +11,7 @@ from app.business.health_analysis import HealthAnalysis
 from app.business.recommendation_engine import RecommendationEngine
 from app.business.nutrition_summary import NutritionSummary
 
-main = Blueprint('main', __name__)
+main = Blueprint('main', __name__, static_folder='static')
 
 # 初始化服务
 # 使用延迟初始化避免在Vercel构建时出现问题
@@ -42,12 +42,17 @@ def init_services():
 
 @main.route('/')
 def index():
-    # 在Vercel环境中直接返回简单的响应
-    if os.getenv('VERCEL') == '1':
-        return jsonify({"message": "Health Menu API is running", "status": "ok"})
-    
-    # 本地开发环境中返回静态文件
-    return send_from_directory(os.path.join(main.root_path, '..'), 'index.html')
+    # 在所有环境中都返回静态文件
+    return send_from_directory(main.static_folder, 'index.html')
+
+@main.route('/<path:filename>')
+def static_files(filename):
+    """提供静态文件"""
+    try:
+        return send_from_directory(main.static_folder, filename)
+    except FileNotFoundError:
+        # 如果文件不存在，返回index.html以支持前端路由
+        return send_from_directory(main.static_folder, 'index.html')
 
 @main.route('/health')
 def health_check():

@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>健康菜单识别 - 智能餐厅助手</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .upload-area {
+            border: 2px dashed #cbd5e0;
+            border-radius: 0.5rem;
+            transition: all 0.3s ease;
+        }
+        .upload-area:hover, .upload-area.dragover {
+            border-color: #8b5cf6;
+            background-color: #f3e8ff;
+        }
+        .step-card {
+            transition: all 0.3s ease;
+        }
+        .step-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        }
+        .progress-bar {
+            height: 8px;
+            background: #e5e7eb;
+            border-radius: 4px;
+            overflow: hidden;
+            position: relative;
+        }
+        .progress-fill {
+            height: 100%;
+            transition: width 0.5s ease;
+            position: relative;
+        }
+        .progress-fill::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            right: 0;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.5), transparent);
+            animation: progress-shine 2s infinite;
+        }
+        @keyframes progress-shine {
+            0% {
+                transform: translateX(-100%);
+            }
+            100% {
+                transform: translateX(100%);
+            }
+        }
+        .progress-container {
+            position: relative;
+            margin: 20px 0;
+        }
+        .progress-labels {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+            font-size: 14px;
+            color: #6b7280;
+        }
+        .circular-progress {
+            width: 120px;
+            height: 120px;
+            position: relative;
+            margin: 0 auto 20px;
+        }
+        .circular-progress svg {
+            width: 100%;
+            height: 100%;
+            transform: rotate(-90deg);
+        }
+        .circular-progress circle {
+            fill: none;
+            stroke-width: 8;
+            stroke-linecap: round;
+        }
+        .circular-progress-bg {
+            stroke: #e5e7eb;
+        }
+        .circular-progress-fill {
+            stroke: #8b5cf6;
+            stroke-dasharray: 0 100;
+            transition: stroke-dasharray 0.5s ease;
+        }
+        .circular-progress-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 20px;
+            font-weight: bold;
+            color: #8b5cf6;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .fade-in {
+            animation: fadeIn 0.5s ease forwards;
+        }
+        .step-indicator {
+            transition: all 0.3s ease;
+        }
+        .step-indicator.active {
+            color: #8b5cf6;
+            font-weight: bold;
+        }
+        .step-indicator.completed {
+            color: #10b981;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <!-- 标题 -->
+        <div class="text-center mb-10">
+            <h1 class="text-3xl md:text-4xl font-bold text-gray-800 mb-3">健康菜单识别</h1>
+            <p class="text-gray-600">智能分析餐厅菜单，为您推荐健康餐食</p>
+        </div>
+
+        <!-- 步骤指示器 -->
+        <div class="max-w-4xl mx-auto mb-10">
+            <div class="flex justify-between relative">
+                <!-- 连接线 -->
+                <div class="absolute top-4 left-0 right-0 h-0.5 bg-gray-200 z-0"></div>
+                <div id="progressLine" class="absolute top-4 left-0 h-0.5 bg-purple-500 z-10" style="width: 0%"></div>
+                
+                <!-- 步骤点 -->
+                <div class="relative z-20 flex flex-col items-center">
+                    <div class="step-indicator w-8 h-8 rounded-full bg-white border-2 border-gray-300 flex items-center justify-center mb-2">
+                        <i class="fas fa-upload"></i>
+                    </div>
+                    <span class="text-xs text-gray-600">上传</span>
+                </div>
+                
+                <div class="relative z-20 flex flex-col items-center">
+                    <div class="step-indicator w-8 h-8 rounded-full bg-white border-2 border-gray-300 flex items-center justify-center mb-2">
+                        <i class="fas fa-camera"></i>
+                    </div>
+                    <span class="text-xs text-gray-600 text-center">菜单<br>识别</span>
+                </div>
+                
+                <div class="relative z-20 flex flex-col items-center">
+                    <div class="step-indicator w-8 h-8 rounded-full bg-white border-2 border-gray-300 flex items-center justify-center mb-2">
+                        <i class="fas fa-heartbeat"></i>
+                    </div>
+                    <span class="text-xs text-gray-600 text-center">营养<br>分析</span>
+                </div>
+                
+                <div class="relative z-20 flex flex-col items-center">
+                    <div class="step-indicator w-8 h-8 rounded-full bg-white border-2 border-gray-300 flex items-center justify-center mb-2">
+                        <i class="fas fa-star"></i>
+                    </div>
+                    <span class="text-xs text-gray-600 text-center">智能<br>推荐</span>
+                </div>
+                
+                <div class="relative z-20 flex flex-col items-center">
+                    <div class="step-indicator w-8 h-8 rounded-full bg-white border-2 border-gray-300 flex items-center justify-center mb-2">
+                        <i class="fas fa-chart-bar"></i>
+                    </div>
+                    <span class="text-xs text-gray-600 text-center">营养<br>总结</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 主要内容区域 -->
+        <div class="max-w-4xl mx-auto">
+            <!-- 上传区域 -->
+            <div id="uploadSection" class="bg-white rounded-xl shadow-md p-6 mb-8 fade-in">
+                <h2 class="text-xl font-semibold text-gray-800 mb-4">上传菜单图片</h2>
+                <div 
+                    id="dropArea" 
+                    class="upload-area p-8 text-center cursor-pointer"
+                    ondragover="event.preventDefault(); handleDragOver(event)"
+                    ondragleave="handleDragLeave(event)"
+                    ondrop="event.preventDefault(); handleDrop(event)"
+                >
+                    <div class="flex flex-col items-center justify-center">
+                        <i class="fas fa-cloud-upload-alt text-4xl text-purple-500 mb-3"></i>
+                        <p class="text-gray-600 mb-2">拖拽图片到这里或点击选择</p>
+                        <p class="text-sm text-gray-500 mb-4">支持 JPG, PNG, JPEG 格式</p>
+                        <button 
+                            class="bg-purple-500 hover:bg-purple-600 text-white px-6 py-2 rounded-lg transition"
+                            onclick="document.getElementById('fileInput').click()"
+                        >
+                            <i class="fas fa-folder-open mr-2"></i>选择图片
+                        </button>
+                        <input 
+                            type="file" 
+                            id="fileInput" 
+                            accept="image/*" 
+                            class="hidden" 
+                            onchange="handleFileSelect(event)"
+                        >
+                    </div>
+                </div>
+            </div>
+
+            <!-- 处理状态 -->
+            <div id="processingSection" class="hidden bg-white rounded-xl shadow-md p-6 mb-8">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-xl font-semibold text-gray-800">正在处理</h2>
+                    <span id="currentStep" class="bg-purple-100 text-purple-800 px-3 py-1 rounded-full text-sm">1/5</span>
+                </div>
+                <!-- 圆形进度条 -->
+                <div class="circular-progress">
+                    <svg viewBox="0 0 120 120">
+                        <circle class="circular-progress-bg" cx="60" cy="60" r="54"></circle>
+                        <circle id="circularProgressFill" class="circular-progress-fill" cx="60" cy="60" r="54" stroke-dasharray="0 100"></circle>
+                    </svg>
+                    <div id="circularProgressText" class="circular-progress-text">0%</div>
+                </div>
+                <!-- 线性进度条 -->
+                <div class="progress-container">
+                    <div class="progress-labels">
+                        <span id="stepDescription">正在上传图片...</span>
+                        <span id="stepProgressPercent">0%</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div id="stepProgressBar" class="progress-fill bg-purple-500" style="width: 0%"></div>
+                    </div>
+                </div>
+                <div class="text-center py-4">
+                    <div id="stepIcon" class="w-16 h-16 mx-auto mb-4 text-purple-500">
+                        <i class="fas fa-upload text-4xl"></i>
+                    </div>
+                    <p id="stepMessage" class="text-gray-600">请稍候，我们正在处理您的图片</p>
+                </div>
+            </div>
+
+            <!-- 错误提示 -->
+            <div id="errorSection" class="hidden bg-red-50 border border-red-200 rounded-xl p-6 mb-8">
+                <div class="flex items-center">
+                    <i class="fas fa-exclamation-circle text-red-500 text-2xl mr-3"></i>
+                    <div>
+                        <h3 class="text-lg font-semibold text-red-800">处理失败</h3>
+                        <p id="errorMessage" class="text-red-600"></p>
+                    </div>
+                </div>
+                <button 
+                    class="mt-4 bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg transition"
+                    onclick="resetApp()"
+                >
+                    重新上传
+                </button>
+            </div>
+
+            <!-- 逐步结果显示区域 -->
+            <div id="resultsSection" class="hidden">
+                <!-- 菜单识别结果 -->
+                <div id="menuRecognitionStep" class="step-card bg-white rounded-xl shadow-md p-6 mb-8 fade-in">
+                    <div class="flex items-center justify-between mb-4">
+                        <h2 class="text-xl font-semibold text-gray-800">菜单识别结果</h2>
+                        <span id="dishCount" class="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm"></span>
+                    </div>
+                    <div id="dishList" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+                </div>
+
+                <!-- 健康分析 -->
+                <div id="healthAnalysisStep" class="step-card bg-white rounded-xl shadow-md p-6 mb-8 fade-in">
+                    <h2 class="text-xl font-semibold text-gray-800 mb-4">健康分析</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                        <div class="bg-blue-50 rounded-lg p-4">
+                            <div class="flex items-center mb-2">
+                                <i class="fas fa-fire text-orange-500 mr-2"></i>
+                                <h3 class="font-medium">卡路里</h3>
+                            </div>
+                            <p id="totalCalories" class="text-2xl font-bold text-gray-800">0</p>
+                            <p class="text-sm text-gray-600">总热量</p>
+                        </div>
+                        <div class="bg-green-50 rounded-lg p-4">
+                            <div class="flex items-center mb-2">
+                                <i class="fas fa-drumstick-bite text-red-500 mr-2"></i>
+                                <h3 class="font-medium">蛋白质</h3>
+                            </div>
+                            <p id="totalProtein" class="text-2xl font-bold text-gray-800">0g</p>
+                            <p class="text-sm text-gray-600">总含量</p>
+                        </div>
+                        <div class="bg-yellow-50 rounded-lg p-4">
+                            <div class="flex items-center mb-2">
+                                <i class="fas fa-cheese text-blue-500 mr-2"></i>
+                                <h3 class="font-medium">脂肪</h3>
+                            </div>
+                            <p id="totalFat" class="text-2xl font-bold text-gray-800">0g</p>
+                            <p class="text-sm text-gray-600">总含量</p>
+                        </div>
+                    </div>
+                    <h3 class="font-medium text-gray-800 mb-3">营养分布</h3>
+                    <div class="space-y-3">
+                        <div>
+                            <div class="flex justify-between text-sm mb-1">
+                                <span>蛋白质</span>
+                                <span id="proteinPercent">0%</span>
+                            </div>
+                            <div class="progress-bar">
+                                <div id="proteinBar" class="progress-fill bg-red-500" style="width: 0%"></div>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="flex justify-between text-sm mb-1">
+                                <span>碳水化合物</span>
+                                <span id="carbsPercent">0%</span>
+                            </div>
+                            <div class="progress-bar">
+                                <div id="carbsBar" class="progress-fill bg-yellow-500" style="width: 0%"></div>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="flex justify-between text-sm mb-1">
+                                <span>脂肪</span>
+                                <span id="fatPercent">0%</span>
+                            </div>
+                            <div class="progress-bar">
+                                <div id="fatBar" class="progress-fill bg-blue-500" style="width: 0%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 智能推荐 -->
+                <div id="recommendationStep" class="step-card bg-white rounded-xl shadow-md p-6 mb-8 fade-in">
+                    <h2 class="text-xl font-semibold text-gray-800 mb-4">智能推荐</h2>
+                    <div id="recommendations" class="space-y-4"></div>
+                </div>
+
+                <!-- 营养总结 -->
+                <div id="nutritionSummaryStep" class="step-card bg-gradient-to-r from-purple-500 to-indigo-600 rounded-xl shadow-md p-6 text-white fade-in">
+                    <h2 class="text-xl font-semibold mb-4">营养总结</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <h3 class="font-medium mb-3">今日餐食总览</h3>
+                            <div class="space-y-3">
+                                <div class="flex justify-between">
+                                    <span>总卡路里</span>
+                                    <span id="summaryCalories" class="font-semibold">0</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span>总价格</span>
+                                    <span id="totalCost" class="font-semibold">¥0</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div>
+                            <h3 class="font-medium mb-3">健康建议</h3>
+                            <p class="text-sm opacity-90">您选择的餐食营养均衡，蛋白质含量充足，脂肪含量适中。建议搭配一杯温水，有助于消化吸收。</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 全局变量
+        let recognitionResult = null;
+        let currentStep = 0;
+        const totalSteps = 5;
+
+        // 处理文件选择
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (file) {
+                processImage(file);
+            }
+        }
+
+        // 处理拖拽上传
+        function handleDragOver(event) {
+            event.preventDefault();
+            document.getElementById('dropArea').classList.add('dragover');
+        }
+
+        function handleDragLeave(event) {
+            document.getElementById('dropArea').classList.remove('dragover');
+        }
+
+        function handleDrop(event) {
+            event.preventDefault();
+            document.getElementById('dropArea').classList.remove('dragover');
+            
+            const file = event.dataTransfer.files[0];
+            if (file && file.type.startsWith('image/')) {
+                processImage(file);
+            }
+        }
+
+        // 更新步骤指示器
+        function updateStepIndicator(step) {
+            // 更新步骤点样式
+            const indicators = document.querySelectorAll('.step-indicator');
+            indicators.forEach((indicator, index) => {
+                indicator.classList.remove('active', 'completed');
+                if (index < step) {
+                    indicator.classList.add('completed');
+                    indicator.innerHTML = '<i class="fas fa-check"></i>';
+                } else if (index === step) {
+                    indicator.classList.add('active');
+                } else {
+                    // 重置未完成的步骤
+                    if (index === 0) indicator.innerHTML = '<i class="fas fa-upload"></i>';
+                    else if (index === 1) indicator.innerHTML = '<i class="fas fa-camera"></i>';
+                    else if (index === 2) indicator.innerHTML = '<i class="fas fa-heartbeat"></i>';
+                    else if (index === 3) indicator.innerHTML = '<i class="fas fa-star"></i>';
+                    else if (index === 4) indicator.innerHTML = '<i class="fas fa-chart-bar"></i>';
+                }
+            });
+            
+            // 更新进度线
+            const progressPercent = (step / (totalSteps - 1)) * 100;
+            document.getElementById('progressLine').style.width = `${progressPercent}%`;
+        }
+
+        // 更新处理步骤显示
+        function updateProcessingStep(step, description, message, icon, progressPercent) {
+            currentStep = step;
+            updateStepIndicator(step);
+            
+            document.getElementById('currentStep').textContent = `${step + 1}/${totalSteps}`;
+            document.getElementById('stepDescription').textContent = description;
+            document.getElementById('stepMessage').textContent = message;
+            document.getElementById('stepIcon').innerHTML = `<i class="fas fa-${icon} text-4xl"></i>`;
+            document.getElementById('stepProgressPercent').textContent = `${progressPercent}%`;
+            document.getElementById('stepProgressBar').style.width = `${progressPercent}%`;
+            
+            // 更新圆形进度条
+            const circularProgressFill = document.getElementById('circularProgressFill');
+            const circularProgressText = document.getElementById('circularProgressText');
+            circularProgressFill.style.strokeDasharray = `${progressPercent} 100`;
+            circularProgressText.textContent = `${progressPercent}%`;
+        }
+
+        // 处理图片上传和分析
+        function processImage(file) {
+            // 显示处理状态
+            document.getElementById('uploadSection').classList.add('hidden');
+            document.getElementById('processingSection').classList.remove('hidden');
+            document.getElementById('errorSection').classList.add('hidden');
+            document.getElementById('resultsSection').classList.add('hidden');
+            
+            // 重置步骤指示器
+            updateStepIndicator(0);
+            
+            // 步骤1: 上传图片
+            updateProcessingStep(0, '正在上传图片', '请稍候，我们正在上传您的图片', 'upload', 20);
+            
+            // 创建 FormData 对象
+            const formData = new FormData();
+            formData.append('image', file);
+
+            // 发送请求到后端
+            fetch('/api/process-menu', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+                
+                // 完成进度
+                updateProcessingStep(4, '处理完成', '所有分析已完成', 'check', 100);
+                
+                // 稍微延迟后显示结果
+                setTimeout(() => {
+                    // 保存识别结果
+                    recognitionResult = data;
+                    
+                    // 显示结果
+                    displayResults(data);
+                }, 500);
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showError(error.message || '处理图片时发生错误');
+            });
+        }
+
+        // 显示错误信息
+        function showError(message) {
+            document.getElementById('processingSection').classList.add('hidden');
+            document.getElementById('errorSection').classList.remove('hidden');
+            document.getElementById('errorMessage').textContent = message;
+        }
+
+        // 显示结果
+        function displayResults(data) {
+            // 隐藏处理状态，显示结果
+            document.getElementById('processingSection').classList.add('hidden');
+            document.getElementById('resultsSection').classList.remove('hidden');
+            
+            // 更新步骤指示器为完成状态
+            updateStepIndicator(totalSteps - 1);
+            
+            // 显示菜品列表
+            displayDishList(data.dishList || []);
+            
+            // 显示健康分析
+            displayHealthAnalysis(data.dishList || []);
+            
+            // 显示推荐
+            displayRecommendations(data.recommendedDishes || []);
+            
+            // 显示营养总结
+            displayNutritionSummary(data.nutritionSummary || {}, data.totalCost || 0);
+        }
+
+        // 显示菜品列表
+        function displayDishList(dishList) {
+            const dishListElement = document.getElementById('dishList');
+            const dishCountElement = document.getElementById('dishCount');
+            
+            dishCountElement.textContent = `共 ${dishList.length} 道菜`;
+            
+            if (dishList.length === 0) {
+                dishListElement.innerHTML = '<p class="text-gray-600 text-center py-4">未找到菜品信息</p>';
+                return;
+            }
+            
+            dishListElement.innerHTML = dishList.map((dish, index) => `
+                <div class="bg-gray-50 rounded-lg p-4">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <h3 class="font-semibold text-gray-800">${dish.name || '未知菜品'}</h3>
+                            <p class="text-sm text-gray-600 mt-1">${dish.description || '暂无描述'}</p>
+                            ${dish.healthDescription ? `<p class="text-xs text-blue-600 mt-1"><i class="fas fa-heart mr-1"></i> ${dish.healthDescription}</p>` : ''}
+                        </div>
+                        <span class="text-purple-600 font-semibold">¥${(dish.price || 0).toFixed(2)}</span>
+                    </div>
+                    <div class="flex items-center mt-3 text-sm text-gray-500">
+                        <span class="mr-3"><i class="fas fa-fire"></i> ${(dish.calories || 0).toFixed(0)}卡</span>
+                        <span class="mr-3"><i class="fas fa-drumstick-bite"></i> ${(dish.protein || 0).toFixed(1)}g</span>
+                        <span class="mr-3"><i class="fas fa-bread-slice"></i> ${(dish.carbs || 0).toFixed(1)}g</span>
+                        <span><i class="fas fa-cheese"></i> ${(dish.fat || 0).toFixed(1)}g</span>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // 显示健康分析
+        function displayHealthAnalysis(dishList) {
+            // 计算总营养成分
+            const totalCalories = dishList.reduce((sum, dish) => sum + (dish.calories || 0), 0);
+            const totalProtein = dishList.reduce((sum, dish) => sum + (dish.protein || 0), 0);
+            const totalCarbs = dishList.reduce((sum, dish) => sum + (dish.carbs || 0), 0);
+            const totalFat = dishList.reduce((sum, dish) => sum + (dish.fat || 0), 0);
+            
+            // 计算营养成分百分比
+            const proteinCalories = totalProtein * 4;
+            const carbsCalories = totalCarbs * 4;
+            const fatCalories = totalFat * 9;
+            const totalMacrosCalories = proteinCalories + carbsCalories + fatCalories || 1;
+            
+            const proteinPercent = Math.round((proteinCalories / totalMacrosCalories) * 100) || 0;
+            const carbsPercent = Math.round((carbsCalories / totalMacrosCalories) * 100) || 0;
+            const fatPercent = Math.round((fatCalories / totalMacrosCalories) * 100) || 0;
+            
+            // 更新页面元素
+            document.getElementById('totalCalories').textContent = Math.round(totalCalories);
+            document.getElementById('totalProtein').textContent = `${totalProtein.toFixed(1)}g`;
+            document.getElementById('totalFat').textContent = `${totalFat.toFixed(1)}g`;
+            
+            document.getElementById('proteinPercent').textContent = `${proteinPercent}%`;
+            document.getElementById('carbsPercent').textContent = `${carbsPercent}%`;
+            document.getElementById('fatPercent').textContent = `${fatPercent}%`;
+            
+            document.getElementById('proteinBar').style.width = `${proteinPercent}%`;
+            document.getElementById('carbsBar').style.width = `${carbsPercent}%`;
+            document.getElementById('fatBar').style.width = `${fatPercent}%`;
+        }
+
+        // 显示推荐
+        function displayRecommendations(recommendedDishes) {
+            const recommendationsElement = document.getElementById('recommendations');
+            
+            // 处理推荐数据
+            let recommendations = [];
+            
+            if (Array.isArray(recommendedDishes)) {
+                recommendations = [{
+                    type: "推荐菜品",
+                    items: recommendedDishes,
+                    reason: "根据营养分析推荐的健康菜品"
+                }];
+            } else if (recommendedDishes && typeof recommendedDishes === 'object') {
+                if (recommendedDishes.singleItems) {
+                    recommendations.push({
+                        type: "单品推荐",
+                        items: recommendedDishes.singleItems,
+                        reason: "推荐的健康单品"
+                    });
+                }
+                if (recommendedDishes.combos) {
+                    recommendations.push({
+                        type: "套餐推荐",
+                        items: recommendedDishes.combos,
+                        reason: "营养搭配合理的套餐"
+                    });
+                }
+                if (recommendations.length === 0) {
+                    recommendations = [{
+                        type: "推荐菜品",
+                        items: [recommendedDishes],
+                        reason: "根据营养分析推荐的菜品"
+                    }];
+                }
+            }
+            
+            if (recommendations.length === 0) {
+                recommendationsElement.innerHTML = '<p class="text-gray-600">暂无推荐</p>';
+                return;
+            }
+            
+            recommendationsElement.innerHTML = recommendations.map(rec => `
+                <div class="border border-gray-200 rounded-lg p-4">
+                    <div class="flex items-center justify-between mb-3">
+                        <h3 class="font-semibold text-lg">${rec.type}</h3>
+                        <span class="bg-purple-100 text-purple-800 px-3 py-1 rounded-full text-sm">推荐</span>
+                    </div>
+                    <p class="text-gray-600 text-sm mb-4">${rec.reason}</p>
+                    
+                    <div class="space-y-4 mb-4">
+                        ${rec.items.map(item => `
+                            <div class="flex items-center py-2 border-b border-gray-100 last:border-0">
+                                <div class="flex-grow">
+                                    <div class="flex justify-between items-center">
+                                        <span class="font-medium">${item.name || '未知菜品'}</span>
+                                        <span class="text-purple-600">¥${(item.price || 0).toFixed(2)}</span>
+                                    </div>
+                                    ${item.description ? `<p class="text-xs text-gray-600 mt-1">${item.description}</p>` : ''}
+                                    ${item.healthDescription ? `<p class="text-xs text-blue-600 mt-1"><i class="fas fa-heart mr-1"></i> ${item.healthDescription}</p>` : ''}
+                                    <div class="flex text-xs text-gray-500 mt-1">
+                                        <span class="mr-2"><i class="fas fa-fire"></i> ${(item.calories || 0).toFixed(0)}卡</span>
+                                        <span class="mr-2"><i class="fas fa-drumstick-bite"></i> ${(item.protein || 0).toFixed(1)}g</span>
+                                        <span class="mr-2"><i class="fas fa-bread-slice"></i> ${(item.carbs || 0).toFixed(1)}g</span>
+                                        <span><i class="fas fa-cheese"></i> ${(item.fat || 0).toFixed(1)}g</span>
+                                    </div>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                    
+                    <div class="flex justify-between items-center pt-3 border-t border-gray-200">
+                        <div>
+                            <p class="text-sm text-gray-600">总热量</p>
+                            <p class="font-semibold">${rec.items.reduce((sum, item) => sum + (item.calories || 0), 0).toFixed(0)} 卡路里</p>
+                        </div>
+                        <div>
+                            <p class="text-sm text-gray-600">总价</p>
+                            <p class="text-xl font-bold text-purple-600">¥${rec.items.reduce((sum, item) => sum + (item.price || 0), 0).toFixed(2)}</p>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // 显示营养总结
+        function displayNutritionSummary(nutritionSummary, totalCost) {
+            document.getElementById('summaryCalories').textContent = nutritionSummary.totalCalories || 0;
+            document.getElementById('totalCost').textContent = `¥${totalCost.toFixed(2)}`;
+        }
+
+        // 重置应用
+        function resetApp() {
+            document.getElementById('errorSection').classList.add('hidden');
+            document.getElementById('resultsSection').classList.add('hidden');
+            document.getElementById('processingSection').classList.add('hidden');
+            document.getElementById('uploadSection').classList.remove('hidden');
+            document.getElementById('fileInput').value = '';
+            recognitionResult = null;
+            
+            // 重置步骤指示器
+            updateStepIndicator(0);
+        }
+    </script>
+</body>
+</html>
